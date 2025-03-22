@@ -1,112 +1,153 @@
 #include <iostream>
-#include <vector>
-#include <cstdlib>
 #include <ctime>
+#include <cstdlib>
 
-// Constantes (UPPER_SNAKE_CASE)
-const int TAMAÑO_TABLERO = 10;
+using namespace std;
 
-// Declaración de funciones (snake_case)
-void inicializar_tablero(std::vector<std::vector<int>>& tablero, int tamaño);
-int calcular_vecinos_vivos(const std::vector<std::vector<int>>& tablero, int fila, int columna, int tamaño);
-void actualizar_tablero(std::vector<std::vector<int>>& tablero, int tamaño);
-void imprimir_tablero(const std::vector<std::vector<int>>& tablero, int tamaño);
+void limpiar_pantalla() { cout << "\033[2J\033[H"; }
+void gotoxy(int x, int y) { cout << "\033[" << y + 1 << ";" << x + 1 << "H"; }
+void esperar(int ms) { for (clock_t t = clock(); (clock() - t) * 1000 / CLOCKS_PER_SEC < ms;); }
 
-int main() {
-    int tamaño, generaciones;
+const int filas = 20;
+const int columnas = 40;
 
-    // Entrada de usuario
-    std::cout << "Ingrese tamaño del tablero: ";
-    std::cin >> tamaño;
-
-    if (tamaño <= 0) {
-        std::cout << "El tamaño del tablero debe ser mayor que 0." << std::endl;
-        return 1;
-    }
-
-    std::cout << "Ingrese número de generaciones: ";
-    std::cin >> generaciones;
-
-    if (generaciones <= 0) {
-        std::cout << "El número de generaciones debe ser mayor que 0." << std::endl;
-        return 1;
-    }
-
-    // Crear el tablero
-    std::vector<std::vector<int>> tablero(tamaño, std::vector<int>(tamaño, 0));
-    inicializar_tablero(tablero, tamaño);
-
-    // Simulación del Juego de la Vida
-    for (int i = 0; i < generaciones; ++i) {
-        imprimir_tablero(tablero, tamaño);
-        actualizar_tablero(tablero, tamaño);
-
-        // Pausa opcional entre generaciones
-        std::cout << "Generación: " << (i + 1) << " completada. Presione Enter para continuar...";
-        std::cin.ignore();
-        std::cin.get();
-
-#ifdef _WIN32
-        system("cls"); // Limpiar pantalla en Windows
-#else
-        system("clear"); // Limpiar pantalla en Linux/Mac
-#endif
-    }
-
-    return 0;
+void inicializar_matriz(bool matriz[filas][columnas])
+{
+	for (int i = 0; i < filas; i ++)
+	{
+		for (int j = 0; j < columnas; j++)
+		{
+			matriz[i][j] = false;
+		}
+	}
+}
+void imprimir_matriz(bool matriz[filas][columnas])
+{
+	for (int i = 0; i < filas; i++)
+	{
+		for (int j = 0; j < columnas; j++)
+		{
+			gotoxy(j, i);
+			if (matriz[i][j])
+			{
+				cout << "#";
+			}
+			else
+			{
+				cout << " ";
+			}
+		}
+	}
+	cout << flush; 
 }
 
-// Función para inicializar el tablero con valores aleatorios
-void inicializar_tablero(std::vector<std::vector<int>>& tablero, int tamaño) {
-    srand((unsigned int)time(0)); // Semilla para números aleatorios
-    for (int i = 0; i < tamaño; ++i) {
-        for (int j = 0; j < tamaño; ++j) {
-            tablero[i][j] = rand() % 2; // Genera 0 o 1 (muerta o viva)
-        }
-    }
-}
+/**
+ * @brief Cuenta los vecinos vivos de una celda en el tablero.
+ *
+ * @param fila Fila de la celda actual.
+ * @param columna Columna de la celda actual.
+ * @return Número de células vivas adyacentes (0-8).
+ */
+int contar_vecinos(bool matrizActual[filas][columnas], int i, int j)
+{
+	///Almacena la cantidad de vecinos q hay alrededor
+	int contador = 0;
 
-// Función para calcular el número de vecinos vivos de una célula
-int calcular_vecinos_vivos(const std::vector<std::vector<int>>& tablero, int fila, int columna, int tamaño) {
-    int vecinos_vivos = 0;
-    for (int i = -1; i <= 1; ++i) {
-        for (int j = -1; j <= 1; ++j) {
-            if (i == 0 && j == 0) continue; // Ignorar la célula actual
-            int nueva_fila = fila + i;
-            int nueva_columna = columna + j;
-            // Verificar si los índices están dentro del rango
-            if (nueva_fila >= 0 && nueva_fila < tamaño && nueva_columna >= 0 && nueva_columna < tamaño) {
-                vecinos_vivos += tablero[nueva_fila][nueva_columna];
-            }
-        }
-    }
-    return vecinos_vivos;
-}
+	///TOROIDAL
+	const int arriba =(i + (-1) + filas) % filas;
+	const int abajo = (i +1) % filas;
+	const int izquierda = (j + (-1) + columnas) % columnas;
+	const int derecha = (j +1) % columnas;
 
-// Función para actualizar el tablero según las reglas del Juego de la Vida
-void actualizar_tablero(std::vector<std::vector<int>>& tablero, int tamaño) {
-    std::vector<std::vector<int>> nuevo_tablero = tablero; // Crear una copia del tablero actual
-    for (int i = 0; i < tamaño; ++i) {
-        for (int j = 0; j < tamaño; ++j) {
-            int vecinos_vivos = calcular_vecinos_vivos(tablero, i, j, tamaño);
-            if (tablero[i][j] == 1) { // Si la célula está viva
-                // Regla de subpoblación y sobrepoblación
-                nuevo_tablero[i][j] = (vecinos_vivos == 2 || vecinos_vivos == 3) ? 1 : 0;
-            } else { // Si la célula está muerta
-                // Regla de reproducción
-                nuevo_tablero[i][j] = (vecinos_vivos == 3) ? 1 : 0;
-            }
-        }
-    }
-    tablero = nuevo_tablero; // Actualizar el tablero original con los nuevos estados
-}
+	//Contar 
+	contador += matrizActual[arriba][izquierda];
+	contador += matrizActual[arriba][j];
+	contador += matrizActual[arriba][derecha];
 
-// Función para imprimir el tablero en la consola
-void imprimir_tablero(const std::vector<std::vector<int>>& tablero, int tamaño) {
-    for (int i = 0; i < tamaño; ++i) {
-        for (int j = 0; j < tamaño; ++j) {
-            std::cout << (tablero[i][j] == 1 ? "■" : ".") << " ";
-        }
-        std::cout << std::endl;
-    }
+	contador += matrizActual[i][izquierda];
+	contador += matrizActual[i][derecha];
+
+	contador += matrizActual[abajo][izquierda];
+	contador += matrizActual[abajo][j];
+	contador += matrizActual[abajo][derecha];
+
+	return contador;
+
+}
+bool aplicar_reglas(bool celulaActual, int vecinosVivos)
+{
+	if (celulaActual && vecinosVivos > 3)
+	{
+		return false;
+	}
+	if (celulaActual && vecinosVivos <2 )
+	{
+		return false;
+	}
+	if (!celulaActual && vecinosVivos == 3)
+	{
+		return true;
+	}
+
+	return celulaActual;
+	
+}
+void calcular_siguientes_generaciones(bool matrizActual[filas][columnas], bool matrizSiguiente[filas][columnas])
+{
+	for (int i = 0; i < filas; i++)
+	{
+		for (int j = 0; j < columnas; j++)
+		{
+			///cuenta los vecinos que hay alrededor 
+			int vecinosContados = contar_vecinos(matrizActual, i, j);
+			matrizSiguiente[i][j] = aplicar_reglas(matrizActual[i][j], vecinosContados);
+		}
+
+	}
+}
+void copiar_matriz(bool matrizActual[filas][columnas], bool matrizSiguiente[filas][columnas])
+{
+
+	for (int i = 0; i < filas; i++)
+	{
+		for (int j = 0; j < columnas; j++)
+		{
+			matrizActual[i][j] = matrizSiguiente[i][j];
+		}
+
+	}
+}
+int main()
+{
+	srand(time(nullptr));
+	bool matrizActual[filas][columnas]; 
+	bool matrizSiguiente[filas][columnas];
+
+	inicializar_matriz(matrizActual);
+
+	matrizActual[0][0] = false;
+	matrizActual[0][1] = false;
+	matrizActual[0][2] = false;
+
+	matrizActual[1][0] = true;
+	matrizActual[1][1] = true;
+	matrizActual[1][2] = true;
+
+	matrizActual[2][0] = false;
+	matrizActual[2][1] = false;
+	matrizActual[2][2] = false;
+
+
+	
+	limpiar_pantalla();
+
+	while (true)
+	{
+		imprimir_matriz(matrizActual);
+		calcular_siguientes_generaciones(matrizActual, matrizSiguiente);
+		copiar_matriz(matrizActual, matrizSiguiente);
+		esperar(100);
+	}
+
+	return 0;
 }
