@@ -1,0 +1,112 @@
+#include <iostream>
+#include <vector>
+#include <cstdlib>
+#include <ctime>
+
+// Constantes (UPPER_SNAKE_CASE)
+const int TAMAÑO_TABLERO = 10;
+
+// Declaración de funciones (snake_case)
+void inicializar_tablero(std::vector<std::vector<int>>& tablero, int tamaño);
+int calcular_vecinos_vivos(const std::vector<std::vector<int>>& tablero, int fila, int columna, int tamaño);
+void actualizar_tablero(std::vector<std::vector<int>>& tablero, int tamaño);
+void imprimir_tablero(const std::vector<std::vector<int>>& tablero, int tamaño);
+
+int main() {
+    int tamaño, generaciones;
+
+    // Entrada de usuario
+    std::cout << "Ingrese tamaño del tablero: ";
+    std::cin >> tamaño;
+
+    if (tamaño <= 0) {
+        std::cout << "El tamaño del tablero debe ser mayor que 0." << std::endl;
+        return 1;
+    }
+
+    std::cout << "Ingrese número de generaciones: ";
+    std::cin >> generaciones;
+
+    if (generaciones <= 0) {
+        std::cout << "El número de generaciones debe ser mayor que 0." << std::endl;
+        return 1;
+    }
+
+    // Crear el tablero
+    std::vector<std::vector<int>> tablero(tamaño, std::vector<int>(tamaño, 0));
+    inicializar_tablero(tablero, tamaño);
+
+    // Simulación del Juego de la Vida
+    for (int i = 0; i < generaciones; ++i) {
+        imprimir_tablero(tablero, tamaño);
+        actualizar_tablero(tablero, tamaño);
+
+        // Pausa opcional entre generaciones
+        std::cout << "Generación: " << (i + 1) << " completada. Presione Enter para continuar...";
+        std::cin.ignore();
+        std::cin.get();
+
+#ifdef _WIN32
+        system("cls"); // Limpiar pantalla en Windows
+#else
+        system("clear"); // Limpiar pantalla en Linux/Mac
+#endif
+    }
+
+    return 0;
+}
+
+// Función para inicializar el tablero con valores aleatorios
+void inicializar_tablero(std::vector<std::vector<int>>& tablero, int tamaño) {
+    srand((unsigned int)time(0)); // Semilla para números aleatorios
+    for (int i = 0; i < tamaño; ++i) {
+        for (int j = 0; j < tamaño; ++j) {
+            tablero[i][j] = rand() % 2; // Genera 0 o 1 (muerta o viva)
+        }
+    }
+}
+
+// Función para calcular el número de vecinos vivos de una célula
+int calcular_vecinos_vivos(const std::vector<std::vector<int>>& tablero, int fila, int columna, int tamaño) {
+    int vecinos_vivos = 0;
+    for (int i = -1; i <= 1; ++i) {
+        for (int j = -1; j <= 1; ++j) {
+            if (i == 0 && j == 0) continue; // Ignorar la célula actual
+            int nueva_fila = fila + i;
+            int nueva_columna = columna + j;
+            // Verificar si los índices están dentro del rango
+            if (nueva_fila >= 0 && nueva_fila < tamaño && nueva_columna >= 0 && nueva_columna < tamaño) {
+                vecinos_vivos += tablero[nueva_fila][nueva_columna];
+            }
+        }
+    }
+    return vecinos_vivos;
+}
+
+// Función para actualizar el tablero según las reglas del Juego de la Vida
+void actualizar_tablero(std::vector<std::vector<int>>& tablero, int tamaño) {
+    std::vector<std::vector<int>> nuevo_tablero = tablero; // Crear una copia del tablero actual
+    for (int i = 0; i < tamaño; ++i) {
+        for (int j = 0; j < tamaño; ++j) {
+            int vecinos_vivos = calcular_vecinos_vivos(tablero, i, j, tamaño);
+            if (tablero[i][j] == 1) { // Si la célula está viva
+                // Regla de subpoblación y sobrepoblación
+                nuevo_tablero[i][j] = (vecinos_vivos == 2 || vecinos_vivos == 3) ? 1 : 0;
+            } else { // Si la célula está muerta
+                // Regla de reproducción
+                nuevo_tablero[i][j] = (vecinos_vivos == 3) ? 1 : 0;
+            }
+        }
+    }
+    tablero = nuevo_tablero; // Actualizar el tablero original con los nuevos estados
+}
+
+// Función para imprimir el tablero en la consola
+void imprimir_tablero(const std::vector<std::vector<int>>& tablero, int tamaño) {
+    for (int i = 0; i < tamaño; ++i) {
+        for (int j = 0; j < tamaño; ++j) {
+            std::cout << (tablero[i][j] == 1 ? "■" : ".") << " ";
+        }
+        std::cout << std::endl;
+    }
+}
